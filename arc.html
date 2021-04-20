@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id = "arc" width = "500" height = "500"></canvas>
+    <script>
+        var canvas = document.getElementById('arc');
+        var ctx = canvas.getContext('2d');
+
+        // 用arcTo方法画圆弧，需要三个点：起始点和两个控制点
+        ctx.beginPath();
+        ctx.moveTo(100,100);
+        ctx.arcTo(150,100,150,150,40);//如果圆弧半径过大，它会交到延长线上
+        ctx.stroke(); // 描绘轮廓
+        ctx.fillRect(150,100,10,10); // 用小方块标注控制点1
+        ctx.fillRect(150,150,10,10); // 用小方块标注控制点2
+
+        // 用arc方法画圆弧
+        ctx.beginPath();//另起一个path，防止不同path之间粘连
+        ctx.arc(200,200,40,0,-Math.PI/2,true);//画四分之一圆
+        ctx.stroke();
+
+        ctx.beginPath();//另起一个path，防止不同path之间粘连
+        ctx.arc(300,300,40,0,Math.PI/2,false);//画四分之一圆
+        ctx.closePath();
+        ctx.stroke();
+
+        ctx.beginPath();//另起一个path，防止不同path之间粘连
+        ctx.arc(300,300,40,0,-Math.PI/2,true);//画四分之一圆
+        ctx.fill();
+    </script>
+</body>
+</html>
