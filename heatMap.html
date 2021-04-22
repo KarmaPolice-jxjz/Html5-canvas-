@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <!-- 画布宽500，高500 -->
+    <canvas id = "heatmap" width="500" height="500"></canvas> 
+    <script>
+        // 生成热力图demo所需要的数据点，包括像素点坐标x,y和数值value
+        var points = [];
+        function generateData(DataNum, DataMax){ // 生成数据的函数，形参分别为生成数据点的个数，随机数的最大值
+            dataList = [];
+            for(let i=0;i<DataNum;i++){
+                x = Math.round(Math.random()*500); // 生成坐标x
+                y = Math.round(Math.random()*500); // 生成坐标y
+                value = Number(Math.random().toFixed(2)); // value为0-1之间的随机小数，并保留2位，注意使用toFixed函数以后数据类型会变成字符串，要转换为数值类型
+                dataList.push([x,y,value]);
+            }
+            return dataList;
+        }
+        points = generateData(300, 500);
+        // 使用canvas画透明度渐变的圆
+        var canvas = document.getElementById('heatmap');
+        var ctx = canvas.getContext('2d');
+        var radius = 20; // 设定圆的半径
+        points.forEach(point=>{
+            ctx.beginPath(); // 开始生成路径
+            ctx.globalAlpha = point[2]; // 设置透明度
+            ctx.arc(point[0],point[1],radius, 0, Math.PI*2, true); // 用arc函数画圆弧
+            let gradient = ctx.createRadialGradient(point[0],point[1],0,point[0],point[1],radius); // 设置圆形渐变梯度 
+            gradient.addColorStop(0,'rgba(0,0,0,1)'); // 这个地方非常关键，渐变的区分点在Alpha通道（透明度）上
+            gradient.addColorStop(1,'rgba(0,0,0,0)'); // 不能用'black'或者'white'来表示，他们并不表示透明度为满或透明度为空的情况，透明度和黑白没关系
+            ctx.fillStyle = gradient;
+            ctx.closePath();
+            ctx.fill(); // 进行填充
+        })
+        // 下面函数用来生成大小为256*1的调色盘
+        // 调色盘与透明度的映射关系如下：
+        // 通过getImageData函数获取的像素点信息是RGBA四通道数据，每一通道数据取值范围均为0-255，共256个数值。
+        // 在构建热力图时，像素点的value与透明度成正比；value值越大，透明度越接近于1，即透明度为满；同时透明度越大，热力图中颜色部分应该更偏暖色调（红色）
+        function getColorPaint(){ 
+            let paletteCanvas = document.createElement('canvas'); // 利用dom操作创建一个元素
+            let paletteCtx = paletteCanvas.getContext('2d'); 
+            let gradientConfig = {
+                '0.2':'rgba(0,0,255,0.2)',
+                '0.3':'rgba(43,111,231,0.3)',
+                '0.4':'rgba(2,192,241,0.4)',
+                '0.6':'rgba(44,222,148,0.6)',
+                '0.8':'rgba(254,237,83,0.8)',
+                '0.9':'rgba(255,118,50,0.9)',
+                '1.0':'rgba(255,64,28,1)'
+            };
+            paletteCanvas.width = 256;
+            paletteCanvas.height = 1;
+            let gradient = paletteCtx.createLinearGradient(0,0,256,1); // 颜色与透明度的线性渐变，渐变方式参考预先定义好的gradientConfig
+            for (let key in gradientConfig) {
+                gradient.addColorStop(Number(key), gradientConfig[key]);
+            }
+            paletteCtx.fillStyle = gradient;
+            paletteCtx.fillRect(0,0,256,1); // 生成调色盘
+            return paletteCtx.getImageData(0,0,256,1).data; // 尺寸为256*4=1024的一个数组
+        }
+        paintList = getColorPaint();
+        let img = ctx.getImageData(0,0,500,500); // getImageData为获取一定范围像素点信息的函数。形参为(x,y,width,height)，是一个矩形的范围。
+        let imgData = img.data;
+        let len = imgData.length;
+        for (let i=3;i<len;i+=4) {// 着色
+            let alpha = imgData[i];
+            let offset = alpha*4; // 调色盘共1024个数据点，每四个表示一组RGBA四通道，在四通道数据部分只有RGB是与颜色相关，有用的，透明度数据不是我们需要的
+            imgData[i-3] = paintList[offset]; // R
+            imgData[i-2] = paintList[offset+1]; // G
+            imgData[i-1] = paintList[offset+2]; // B
+        }
+        ctx.putImageData(img, 0, 0); // 把变更后的像素点返回
+    </script>
+</body>
+</html>
